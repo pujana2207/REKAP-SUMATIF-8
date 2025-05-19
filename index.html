@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rekap Hasil Sumatif per Kelas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f8fafc;
+      background-image: linear-gradient(to bottom, #f0f9ff, #ffffff);
+    }
+    
+    .filter-btn {
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .filter-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .filter-btn.active {
+      background-color: #1e40af;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .search-input {
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .search-input:focus {
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+      border-color: #3b82f6;
+    }
+    
+    .table-container {
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+      position: relative;
+    }
+    
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+    }
+    
+    th {
+      position: sticky;
+      top: 0;
+      background-color: #3b82f6;
+      color: white;
+      font-weight: 500;
+      padding: 12px 16px;
+    }
+    
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    
+    tr:hover {
+      background-color: #eff6ff;
+    }
+    
+    .loading-spinner {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .footer-wave {
+      height: 80px;
+      background-color: #3b82f6;
+      position: relative;
+    }
+    
+    .footer-wave::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -30px;
+      height: 30px;
+      background-size: 50px 100%;
+      background-image: radial-gradient(circle at 25px -15px, transparent 50px, #3b82f6 51px);
+    }
+    
+    .sync-btn {
+      transition: all 0.3s ease;
+    }
+    
+    .sync-btn:hover {
+      transform: rotate(360deg);
+    }
+    
+    .sync-btn.syncing {
+      animation: spin 1s linear infinite;
+    }
+    
+    .export-btn {
+      transition: all 0.3s ease;
+    }
+    
+    .export-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .stat-card {
+      transition: all 0.3s ease;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card.active {
+      border: 2px solid #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    /* New styles for enhanced UI */
+    .header-gradient {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 16px;
+      font-weight: 600;
+      color: #111827;
+      display: flex;
+      align-items: center;
+    }
+
+    .card-body {
+      padding: 16px;
+    }
+
+    .floating-btn {
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .floating-btn:hover {
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .progress-bar {
+      height: 6px;
+      border-radius: 3px;
+      background-color: #e5e7eb;
+      overflow: hidden;
+    }
+
+    .progress-value {
+      height: 100%;
+      transition: width 0.6s ease;
+    }
+
+    .glow {
+      animation: glow 2s infinite alternate;
+    }
+
+    @keyframes glow {
+      from {
+        box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+      }
+      to {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+      }
+    }
+
+    .tooltip {
+      position: relative;
+    }
+
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .tooltip-text {
+      visibility: hidden;
+      opacity: 0;
+      position: absolute;
+      z-index: 1;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background-color: #1f2937;
+      color: white;
+      text-align: center;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      width: max-content;
+      max-width: 200px;
+      transition: all 0.3s ease;
+      margin-bottom: 10px;
+    }
+
+    .tooltip-text::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #1f2937 transparent transparent transparent;
+    }
+
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .scroll-container {
+      scrollbar-width: thin;
+      scrollbar-color: #3b82f6 #e5e7eb;
+    }
+
+    .scroll-container::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .scroll-container::-webkit-scrollbar-track {
+      background: #e5e7eb;
+      border-radius: 10px;
+    }
+
+    .scroll-container::-webkit-scrollbar-thumb {
+      background-color: #3b82f6;
+      border-radius: 10px;
+    }
+
+    /* New styles for class report */
+    .class-report-card {
+      border-top: 3px solid #3b82f6;
+      transition: all 0.3s ease;
+    }
+
+    .class-report-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .stat-badge.avg {
+      background-color: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .stat-badge.max {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+
+    .stat-badge.min {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+
+    .class-selector-btn {
+      transition: all 0.2s ease;
+    }
+
+    .class-selector-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .class-selector-btn.active {
+      background-color: #3b82f6;
+      color: white;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* New styles for subject statistics */
+    .subject-stats-card {
+      border-top: 3px solid #8b5cf6;
+      transition: all 0.3s ease;
+    }
+
+    .subject-stats-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-badge.subject-avg {
+      background-color: #ede9fe;
+      color: #6d28d9;
+    }
+
+    .stat-badge.subject-max {
+      background-color: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .stat-badge.subject-min {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .stat-badge.subject-students {
+      background-color: #ecfccb;
+      color: #4d7c0f;
+    }
+
+    /* New style for back button */
+    .back-btn {
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .back-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      background-color: #f59e0b;
+    }
+
+    /* Mobile-specific styles */
+    @media (max-width: 768px) {
+      .header-gradient {
+        padding: 12px 0;
+      }
+      
+      .header-gradient .container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      
+      .header-gradient .flex {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .header-gradient img {
+        height: 12vw;
+        width: 12vw;
+        min-height: 40px;
+        min-width: 40px;
+      }
+      
+      h1.text-4xl {
+        font-size: 1.75rem;
+        line-height: 2rem;
+      }
+      
+      .text-lg {
+        font-size: 0.9rem;
+      }
+      
+      .card-header {
+        padding: 12px;
+      }
+      
+      .card-body {
+        padding: 12px;
+      }
+      
+      .button-group {
+        gap: 6px;
+      }
+      
+      .filter-btn {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .export-btn {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .sync-btn-container {
+        justify-content: center;
+        width: 100%;
+      }
+      
+      .sync-btn {
+        margin: 0 auto;
+      }
+      
+      .table-container {
+        max-height: 60vh;
+      }
+      
+      th, td {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+      }
+      
+      .subject-stats-card .grid,
+      .class-report-card .grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      
+      .total-participants .grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stat-card {
+        padding: 12px;
+      }
+      
+      .stat-card h3 {
+        font-size: 1rem;
+      }
+      
+      .stat-card .text-3xl {
+        font-size: 1.5rem;
+      }
+      
+      .search-input {
+        padding: 10px 10px 10px 36px;
+      }
+      
+      .footer-wave {
+        height: 60px;
+      }
+      
+      .footer-wave::before {
+        top: -20px;
+        height: 20px;
+      }
+
+      /* Mobile back button */
+      .back-btn {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header-gradient h1 {
+        font-size: 1.25rem;
+      }
+      
+      .header-gradient p {
+        font-size: 0.7rem;
+      }
+      
+      .card-header span {
+        font-size: 0.7rem;
+      }
+      
+      .filter-btn {
+        padding: 6px 10px;
+        font-size: 0.7rem;
+      }
+      
+      .class-selector-btn {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+      }
+      
+      th, td {
+        padding: 6px 8px;
+        font-size: 0.7rem;
+      }
+      
+      .nilai-span {
+        padding: 2px 6px;
+        font-size: 0.7rem;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Header with School Logo - Enhanced with gradient -->
+  <header class="header-gradient text-white">
+    <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between">
+      <div class="flex items-center space-x-4 mb-4 md:mb-0">
+        <div class="bg-white p-2 rounded-full shadow-lg">
+          <img src="https://i.ibb.co.com/3YjdDh2N/logo-sekolah-FINAL.png" alt="Logo Sekolah" class="h-14 w-14 object-contain">
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">SMP Negeri 1 Sukasada</h1>
+          <p class="text-blue-100">SUMATIF 2025</p>
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6">
+        <div class="flex items-center space-x-2 text-blue-100">
+          <i class="fas fa-calendar-alt"></i>
+          <span id="current-date" class="font-medium"></span>
+        </div>
+        <div class="flex items-center space-x-2 text-blue-100">
+          <i class="fas fa-sync-alt"></i>
+          <span id="last-sync" class="text-sm">Belum disinkron</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto">
+      <!-- Hero Section -->
+      <div class="text-center mb-6 md:mb-10">
+        <div class="inline-block bg-blue-100 text-blue-800 px-4 py-1 rounded-full text-sm font-medium mb-3">
+          <i class="fas fa-chart-line mr-2"></i>Laporan Hasil Sumatif
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">Rekap Hasil SUMATIF Kelas 8</h1>
+        <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">Pantau hasil Sumatif siswa per kelas secara real-time dengan visualisasi yang interaktif</p>
+      </div>
+
+      <!-- Back to Menu Button - New button added here -->
+      <div class="flex justify-end mb-6">
+        <a href="https://pujana2207.github.io/LIVE-SCORE-SUMATIF/" class="back-btn bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all">
+          <i class="fas fa-arrow-left mr-2"></i>
+          <span>Kembali ke Menu</span>
+        </a>
+      </div>
+
+      <!-- Subject Statistics - New section -->
+      <div id="subjectStats" class="card mb-6 hover:shadow-md subject-stats-card" style="display: none;">
+        <div class="card-header">
+          <i class="fas fa-book-open mr-3 text-purple-500"></i>
+          <span>Statistik Mata Pelajaran</span>
+          <span class="ml-auto text-sm text-gray-500 truncate" id="selectedSubjectTitle"></span>
+        </div>
+        <div class="card-body">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="subjectStatsContainer">
+            <!-- Will be filled with subject statistics -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons - Enhanced with floating effect -->
+      <div class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4">
+        <div class="sync-btn-container flex items-center space-x-3 w-full md:w-auto">
+          <button id="syncButton" class="sync-btn floating-btn bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 tooltip">
+            <i class="fas fa-sync-alt"></i>
+            <span class="tooltip-text">Sinkronkan data terbaru</span>
+          </button>
+          <span class="text-sm text-gray-600 hidden md:block">SINKRONKAN DATA</span>
+        </div>
+        <div class="action-buttons flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-3 w-full md:w-auto">
+          <button id="exportClassButton" class="export-btn floating-btn bg-purple-600 text-white px-4 py-2 md:px-5 md:py-3 rounded-lg shadow-lg hover:bg-purple-700 flex items-center justify-center space-x-2 w-full">
+            <i class="fas fa-file-alt"></i>
+            <span>Export Per Kelas</span>
+          </button>
+          <button id="exportSubjectButton" class="export-btn floating-btn bg-indigo-600 text-white px-4 py-2 md:px-5 md:py-3 rounded-lg shadow-lg hover:bg-indigo-700 flex items-center justify-center space-x-2 w-full">
+            <i class="fas fa-book"></i>
+            <span>Export Per Mapel</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading Indicator - Enhanced with pulse animation -->
+      <div id="loading" class="loading flex items-center justify-center space-x-2 py-6 hidden">
+        <div class="loading-spinner h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+        <span class="text-gray-600 font-medium">Mengambil data terbaru...</span>
+      </div>
+
+      <!-- Subject Buttons - Enhanced card design -->
+      <div class="card mb-6 hover:shadow-md">
+        <div class="card-header">
+          <i class="fas fa-book mr-3 text-blue-500"></i> 
+          <span>Mata Pelajaran</span>
+          <span class="ml-auto text-sm text-gray-500">Pilih salah satu</span>
+        </div>
+        <div class="card-body">
+          <div class="button-group flex flex-wrap gap-3" id="mapelButtonGroup"></div>
+        </div>
+      </div>
+
+      <!-- Class Selector - New section for class selection -->
+      <div class="card mb-6 hover:shadow-md" id="classSelectorGroup" style="display: none;">
+        <div class="card-header">
+          <i class="fas fa-users mr-3 text-blue-500"></i>
+          <span>Kelas</span>
+          <span class="ml-auto text-sm text-gray-500">Pilih kelas</span>
+        </div>
+        <div class="card-body">
+          <div class="flex flex-wrap gap-2" id="classButtonsContainer"></div>
+        </div>
+      </div>
+
+      <!-- Class Report - New section for class statistics -->
+      <div id="classReport" class="card mb-6 hover:shadow-md class-report-card" style="display: none;">
+        <div class="card-header">
+          <i class="fas fa-chart-bar mr-3 text-blue-500"></i>
+          <span>Statistik Kelas</span>
+          <span class="ml-auto text-sm text-gray-500 truncate" id="selectedClassTitle"></span>
+        </div>
+        <div class="card-body">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="classStats">
+            <!-- Will be filled with class statistics -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Box - Enhanced with floating effect -->
+      <div class="card mb-6 hover:shadow-md">
+        <div class="card-body">
+          <div class="max-w-md mx-auto relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+              <i class="fas fa-search"></i>
+            </div>
+            <input type="text" id="searchInput" placeholder="Cari nama peserta..." 
+                   class="search-input pl-10 w-full py-2 md:py-3 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Table - Enhanced with better scrolling -->
+      <div class="card mb-8 overflow-hidden">
+        <div class="card-header flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div class="mb-2 md:mb-0">
+            <i class="fas fa-table mr-3 text-blue-500"></i>
+            <span>Data Hasil Sumatif</span>
+          </div>
+          <div class="text-sm text-gray-500" id="resultCount">0 hasil ditemukan</div>
+        </div>
+        <div class="table-container">
+          <div class="overflow-x-auto scroll-container" style="max-height: 60vh;">
+            <table id="rekapTable" class="w-full">
+              <thead>
+                <tr>
+                  <th class="py-2 md:py-3 px-3 md:px-6 text-left">Kelas</th>
+                  <th class="py-2 md:py-3 px-3 md:px-6 text-left">Nama</th>
+                  <th class="py-2 md:py-3 px-3 md:px-6 text-left">Mapel</th>
+                  <th class="py-2 md:py-3 px-3 md:px-6 text-left">Nilai</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody" class="divide-y divide-gray-200"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer - Enhanced with better styling -->
+  <footer class="mt-auto">
+    <div class="footer-wave"></div>
+    <div class="bg-blue-600 text-white py-6 md:py-8">
+      <div class="container mx-auto px-4">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div class="mb-6 md:mb-0 text-center md:text-left">
+            <h3 class="text-xl font-semibold mb-2">SMP Negeri 1 Sukasada</h3>
+            <p class="text-blue-100">Jl. Jelantik Gingsir No. 26, Sukasada</p>
+          </div>
+        </div>
+        <div class="mt-6 pt-6 border-t border-blue-500 text-center text-sm text-blue-100">
+          <p>&copy; 2025 SMP Negeri 1 Sukasada | Gede Pujana</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwmrRL8DZV8hHIbdk7KDQ-D79R3TVMosy2pOHWyBNi6saien99_hRNKnmMW-E5Mp580iw/exec';
+    let allData = [];
+    let selectedMapel = null;
+    let selectedKelas = null;
+    let lastSyncTime = null;
+
+    // Class data with student counts
+    const classData = {
+      '8A': 32,
+      '8B': 32,
+      '8C': 32,
+      '8D': 32,
+      '8E': 33,
+      '8F': 34,
+      '8G': 34,
+      '8H': 33
+    };
+
+    // Set current date
+    document.addEventListener('DOMContentLoaded', () => {
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const today = new Date();
+      document.getElementById('current-date').textContent = today.toLocaleDateString('id-ID', options);
+      
+      // Initialize sync button
+      document.getElementById('syncButton').addEventListener('click', manualSync);
+      
+      // Initialize export class button
+      document.getElementById('exportClassButton').addEventListener('click', exportClassToExcel);
+      
+      // Initialize export subject button
+      document.getElementById('exportSubjectButton').addEventListener('click', exportSubjectToExcel);
+      
+      // Initialize search input
+      document.getElementById('searchInput').addEventListener('input', searchTable);
+      
+      // Initial data load
+      getDataFromSheet();
+    });
+
+    function updateLastSyncTime() {
+      const now = new Date();
+      lastSyncTime = now;
+      const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      const dateString = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+      document.getElementById('last-sync').textContent = `Terakhir sinkron: ${timeString}, ${dateString}`;
+    }
+
+    function manualSync() {
+      const syncButton = document.getElementById('syncButton');
+      syncButton.classList.add('syncing');
+      getDataFromSheet();
+    }
+
+    async function getDataFromSheet() {
+      document.getElementById('loading').classList.remove('hidden');
+      try {
+        const response = await fetch(scriptURL);
+        allData = await response.json();
+        if (selectedMapel) {
+          filterByMapel(selectedMapel, allData);
+        } else {
+          createMapelButtons(allData);
+        }
+        updateLastSyncTime();
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('Gagal mengambil data. Silakan coba lagi.');
+      } finally {
+        document.getElementById('loading').classList.add('hidden');
+        const syncButton = document.getElementById('syncButton');
+        syncButton.classList.remove('syncing');
+      }
+    }
+
+    function tampilkanTabel(data) {
+      const tableBody = document.getElementById('tableBody');
+      tableBody.innerHTML = '';
+
+      data.forEach(item => {
+        if (item.nama && item.nama !== '#N/A') {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-blue-50';
+          
+          const kelasCell = document.createElement('td');
+          kelasCell.className = 'py-2 md:py-4 px-3 md:px-6';
+          kelasCell.textContent = item.kelas;
+          
+          const namaCell = document.createElement('td');
+          namaCell.className = 'py-2 md:py-4 px-3 md:px-6 font-medium';
+          namaCell.textContent = item.nama;
+          
+          const mapelCell = document.createElement('td');
+          mapelCell.className = 'py-2 md:py-4 px-3 md:px-6';
+          mapelCell.textContent = item.mapel;
+          
+          const nilaiCell = document.createElement('td');
+          nilaiCell.className = 'py-2 md:py-4 px-3 md:px-6';
+          
+          const nilai = parseFloat(item.nilai);
+          const nilaiSpan = document.createElement('span');
+          nilaiSpan.className = `px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-medium ${
+            nilai >= 80 ? 'bg-green-100 text-green-800' : 
+            nilai >= 75 ? 'bg-blue-100 text-blue-800' : 
+            nilai >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+          }`;
+          nilaiSpan.textContent = item.nilai;
+          nilaiCell.appendChild(nilaiSpan);
+          
+          row.appendChild(kelasCell);
+          row.appendChild(namaCell);
+          row.appendChild(mapelCell);
+          row.appendChild(nilaiCell);
+          
+          tableBody.appendChild(row);
+        }
+      });
+
+      // Update result count
+      document.getElementById('resultCount').textContent = `${data.filter(item => item.nama && item.nama !== '#N/A').length} hasil ditemukan`;
+    }
+
+    function createMapelButtons(data) {
+      const mapelSet = new Set();
+      data.forEach(item => {
+        if (item.mapel && item.mapel !== '#N/A') {
+          mapelSet.add(item.mapel);
+        }
+      });
+
+      const mapelButtonGroup = document.getElementById('mapelButtonGroup');
+      mapelButtonGroup.innerHTML = '';
+
+      Array.from(mapelSet).sort().forEach(mapel => {
+        const button = document.createElement('button');
+        button.className = 'filter-btn bg-blue-100 text-blue-800 px-3 py-1 md:px-4 md:py-2 rounded-lg hover:bg-blue-200 hover:shadow-md transition-all';
+        button.textContent = mapel;
+        button.onclick = () => {
+          // Remove active class from all buttons
+          document.querySelectorAll('#mapelButtonGroup button').forEach(btn => {
+            btn.classList.remove('active');
+            btn.classList.remove('bg-blue-600', 'text-white');
+            btn.classList.add('bg-blue-100', 'text-blue-800');
+          });
+          
+          // Add active class to clicked button
+          button.classList.add('active');
+          button.classList.add('bg-blue-600', 'text-white');
+          button.classList.remove('bg-blue-100', 'text-blue-800');
+          
+          selectedMapel = mapel;
+          selectedKelas = null;
+          filterByMapel(mapel, data);
+        };
+        mapelButtonGroup.appendChild(button);
+      });
+    }
+
+    function filterByMapel(mapel, data) {
+      const filteredData = data.filter(item => item.mapel === mapel && item.nama && item.nama !== '#N/A');
+      filteredData.sort((a, b) => {
+        if (a.kelas !== b.kelas) return a.kelas.localeCompare(b.kelas);
+        return a.nama.localeCompare(b.nama);
+      });
+      tampilkanTabel(filteredData);
+      createClassButtons(filteredData);
+      updateSubjectStatistics(data, mapel);
+      document.getElementById('classReport').style.display = 'none';
+      document.getElementById('classSelectorGroup').style.display = 'block';
+    }
+
+    function createClassButtons(data) {
+      const classSet = new Set();
+      data.forEach(item => {
+        if (item.kelas && item.kelas !== '#N/A') {
+          classSet.add(item.kelas);
+        }
+      });
+
+      const classSelectorGroup = document.getElementById('classSelectorGroup');
+      const classButtonsContainer = document.getElementById('classButtonsContainer');
+      classSelectorGroup.style.display = 'block';
+      classButtonsContainer.innerHTML = '';
+
+      // Sort classes numerically (VII A, VII B, VIII A, etc.)
+      const sortedClasses = Array.from(classSet).sort((a, b) => {
+        // Extract grade and class letter
+        const gradeA = parseInt(a.split(' ')[0].replace(/\D/g, ''));
+        const gradeB = parseInt(b.split(' ')[0].replace(/\D/g, ''));
+        if (gradeA !== gradeB) return gradeA - gradeB;
+        return a.localeCompare(b);
+      });
+
+      sortedClasses.forEach(kelas => {
+        const button = document.createElement('button');
+        button.className = 'class-selector-btn bg-gray-100 text-gray-800 px-2 py-1 md:px-3 md:py-1 rounded-lg hover:bg-gray-200 hover:shadow-md transition-all';
+        button.textContent = kelas;
+        button.onclick = () => {
+          // Remove active class from all buttons
+          document.querySelectorAll('#classButtonsContainer button').forEach(btn => {
+            btn.classList.remove('active');
+            btn.classList.remove('bg-blue-600', 'text-white');
+            btn.classList.add('bg-gray-100', 'text-gray-800');
+          });
+          
+          // Add active class to clicked button
+          button.classList.add('active');
+          button.classList.add('bg-blue-600', 'text-white');
+          button.classList.remove('bg-gray-100', 'text-gray-800');
+          
+          selectedKelas = kelas;
+          filterByClass(kelas, data);
+        };
+        classButtonsContainer.appendChild(button);
+      });
+    }
+
+    function filterByClass(kelas, data) {
+      const filteredData = data.filter(item => item.kelas === kelas && item.nama && item.nama !== '#N/A');
+      filteredData.sort((a, b) => a.nama.localeCompare(b.nama));
+      tampilkanTabel(filteredData);
+      updateClassStatistics(filteredData, kelas);
+      document.getElementById('classReport').style.display = 'block';
+    }
+
+    function updateSubjectStatistics(data, mapel) {
+      const subjectStatsContainer = document.getElementById('subjectStatsContainer');
+      const selectedSubjectTitle = document.getElementById('selectedSubjectTitle');
+      
+      selectedSubjectTitle.textContent = mapel;
+      
+      // Filter data for selected subject
+      const subjectData = data.filter(item => item.mapel === mapel && item.nama && item.nama !== '#N/A' && item.nilai && item.nilai !== '#N/A');
+      
+      // Calculate statistics
+      const totalStudents = subjectData.length;
+      const nilaiArray = subjectData.map(item => parseFloat(item.nilai)).filter(n => !isNaN(n));
+      const avg = nilaiArray.length > 0 ? (nilaiArray.reduce((a, b) => a + b, 0) / nilaiArray.length).toFixed(2) : 0;
+      const max = nilaiArray.length > 0 ? Math.max(...nilaiArray).toFixed(2) : 0;
+      const min = nilaiArray.length > 0 ? Math.min(...nilaiArray).toFixed(2) : 0;
+      
+      subjectStatsContainer.innerHTML = `
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-gray-500 font-medium">Rata-rata Nilai</h3>
+            <span class="stat-badge subject-avg">
+              <i class="fas fa-calculator mr-1"></i> AVG
+            </span>
+          </div>
+          <div class="text-2xl md:text-3xl font-bold text-purple-600">${avg}</div>
+          <div class="text-sm text-gray-500 mt-2">Nilai rata-rata mapel</div>
+        </div>
+        
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-gray-500 font-medium">Nilai Tertinggi</h3>
+            <span class="stat-badge subject-max">
+              <i class="fas fa-arrow-up mr-1"></i> MAX
+            </span>
+          </div>
+          <div class="text-2xl md:text-3xl font-bold text-blue-600">${max}</div>
+          <div class="text-sm text-gray-500 mt-2">Pencapaian terbaik</div>
+        </div>
+        
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-gray-500 font-medium">Nilai Terendah</h3>
+            <span class="stat-badge subject-min">
+              <i class="fas fa-arrow-down mr-1"></i> MIN
+            </span>
+          </div>
+          <div class="text-2xl md:text-3xl font-bold text-red-600">${min}</div>
+          <div class="text-sm text-gray-500 mt-2">Perlu perhatian</div>
+        </div>
+        
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-gray-500 font-medium">Total Peserta</h3>
+            <span class="stat-badge subject-students">
+              <i class="fas fa-user-graduate mr-1"></i> TOTAL
+            </span>
+          </div>
+          <div class="text-2xl md:text-3xl font-bold text-green-600">${totalStudents}</div>
+          <div class="text-sm text-gray-500 mt-2">Jumlah peserta Sumatif</div>
+        </div>
+      `;
+      
+      // Show subject stats section
+      document.getElementById('subjectStats').style.display = 'block';
+    }
+
+    function updateClassStatistics(data, kelas) {
+      const classStatsContainer = document.getElementById('classStats');
+      const selectedClassTitle = document.getElementById('selectedClassTitle');
+      
+      selectedClassTitle.textContent = `Kelas ${kelas}`;
+      
+      // Calculate statistics
+      const nilaiArray = data.map(item => parseFloat(item.nilai)).filter(n => !isNaN(n));
+      const avg = nilaiArray.length > 0 ? (nilaiArray.reduce((a, b) => a + b, 0) / nilaiArray.length).toFixed(2) : 0;
+      const max = nilaiArray.length > 0 ? Math.max(...nilaiArray).toFixed(2) : 0;
+      const min = nilaiArray.length > 0 ? Math.min(...nilaiArray).toFixed(2) : 0;
+      
+      // Get expected student count from classData
+      const expectedStudents = classData[kelas] || 0;
+      const presentStudents = data.length;
+      const attendancePercentage = expectedStudents > 0 ? (presentStudents / expectedStudents * 100).toFixed(1) : 0;
+      
+      classStatsContainer.innerHTML = `
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-gray-500 font-medium">Rata-rata Nilai</h3>
+            <span class="stat-badge avg">
+              <i class="fas fa-calculator mr-1"></i> AVG
+            </span>
+          </div>
+          <div class="text-2xl md:text-3xl font-bold text-blue-600">${avg}</div>
+          <div class="text-sm text-gray-500 mt-2">Dari ${nilaiArray.length} peserta</div>
+        </div>
+        
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-gray-500 font-medium">Nilai Tertinggi</h3>
+            <span class="stat-badge max">
+              <i class="fas fa-arrow-up mr-1"></i> MAX
+            </span>
+          </div>
+          <div class="text-2xl md:text-3xl font-bold text-green-600">${max}</div>
+          <div class="text-sm text-gray-500 mt-2">Pencapaian terbaik</div>
+        </div>
+        
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-gray-500 font-medium">Nilai Terendah</h3>
+            <span class="stat-badge min">
+              <i class="fas fa-arrow-down mr-1"></i> MIN
+            </span>
+          </div>
+          <div class="text-2xl md:text-3xl font-bold text-red-600">${min}</div>
+          <div class="text-sm text-gray-500 mt-2">Perlu perhatian</div>
+        </div>
+        
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-gray-500 font-medium">Kehadiran</h3>
+            <span class="stat-badge">
+              <i class="fas fa-user-check mr-1"></i> PRESENSI
+            </span>
+          </div>
+          <div class="text-2xl md:text-3xl font-bold text-indigo-600">${presentStudents}/${expectedStudents}</div>
+          <div class="text-sm text-gray-500 mt-2">(${attendancePercentage}%)</div>
+          <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div class="bg-indigo-600 h-2 rounded-full" style="width: ${attendancePercentage}%"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function searchTable() {
+      const input = document.getElementById('searchInput').value.toLowerCase();
+      const rows = document.querySelectorAll('#rekapTable tbody tr');
+
+      let visibleCount = 0;
+      rows.forEach(row => {
+        const nama = row.cells[1].textContent.toLowerCase();
+        if (nama.includes(input)) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Update result count
+      document.getElementById('resultCount').textContent = `${visibleCount} hasil ditemukan`;
+    }
+
+    function exportClassToExcel() {
+      if (!selectedMapel || !selectedKelas) {
+        alert('Silakan pilih mata pelajaran dan kelas terlebih dahulu');
+        return;
+      }
+      
+      // Prepare data for export
+      const exportData = allData.filter(item => 
+        item.mapel === selectedMapel && 
+        item.kelas === selectedKelas &&
+        item.nama && item.nama !== '#N/A'
+      );
+      
+      // Calculate statistics
+      const nilaiArray = exportData.map(item => parseFloat(item.nilai)).filter(n => !isNaN(n));
+      const avg = nilaiArray.length > 0 ? (nilaiArray.reduce((a, b) => a + b, 0) / nilaiArray.length).toFixed(2) : 0;
+      const max = nilaiArray.length > 0 ? Math.max(...nilaiArray).toFixed(2) : 0;
+      const min = nilaiArray.length > 0 ? Math.min(...nilaiArray).toFixed(2) : 0;
+      
+      // Format data for Excel
+      const formattedData = exportData.map(item => ({
+        'Kelas': item.kelas,
+        'Nama': item.nama,
+        'Mata Pelajaran': item.mapel,
+        'Nilai': item.nilai
+      }));
+      
+      // Add statistics row
+      formattedData.push({}, {
+        'Kelas': 'STATISTIK',
+        'Nama': '',
+        'Mata Pelajaran': '',
+        'Nilai': ''
+      }, {
+        'Kelas': 'Rata-rata',
+        'Nama': '',
+        'Mata Pelajaran': '',
+        'Nilai': avg
+      }, {
+        'Kelas': 'Nilai Tertinggi',
+        'Nama': '',
+        'Mata Pelajaran': '',
+        'Nilai': max
+      }, {
+        'Kelas': 'Nilai Terendah',
+        'Nama': '',
+        'Mata Pelajaran': '',
+        'Nilai': min
+      });
+      
+      // Create worksheet
+      const ws = XLSX.utils.json_to_sheet(formattedData);
+      
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, `Rekap ${selectedKelas}`);
+      
+      // Generate filename
+      const filename = `Rekap_${selectedMapel}_${selectedKelas}.xlsx`;
+      
+      // Export to Excel
+      XLSX.writeFile(wb, filename);
+    }
+
+    function exportSubjectToExcel() {
+      if (!selectedMapel) {
+        alert('Silakan pilih mata pelajaran terlebih dahulu');
+        return;
+      }
+      
+      // Prepare data for export
+      const exportData = allData.filter(item => 
+        item.mapel === selectedMapel &&
+        item.nama && item.nama !== '#N/A'
+      );
+      
+      // Calculate statistics
+      const nilaiArray = exportData.map(item => parseFloat(item.nilai)).filter(n => !isNaN(n));
+      const avg = nilaiArray.length > 0 ? (nilaiArray.reduce((a, b) => a + b, 0) / nilaiArray.length).toFixed(2) : 0;
+      const max = nilaiArray.length > 0 ? Math.max(...nilaiArray).toFixed(2) : 0;
+      const min = nilaiArray.length > 0 ? Math.min(...nilaiArray).toFixed(2) : 0;
+      const totalStudents = exportData.length;
+      
+      // Format data for Excel
+      const formattedData = exportData.map(item => ({
+        'Kelas': item.kelas,
+        'Nama': item.nama,
+        'Mata Pelajaran': item.mapel,
+        'Nilai': item.nilai
+      }));
+      
+      // Add statistics row
+      formattedData.push({}, {
+        'Kelas': 'STATISTIK',
+        'Nama': '',
+        'Mata Pelajaran': '',
+        'Nilai': ''
+      }, {
+        'Kelas': 'Rata-rata',
+        'Nama': '',
+        'Mata Pelajaran': '',
+        'Nilai': avg
+      }, {
+        'Kelas': 'Nilai Tertinggi',
+        'Nama': '',
+        'Mata Pelajaran': '',
+        'Nilai': max
+      }, {
+        'Kelas': 'Nilai Terendah',
+        'Nama': '',
+        'Mata Pelajaran': '',
+        'Nilai': min
+      }, {
+        'Kelas': 'Total Peserta',
+        'Nama': '',
+        'Mata Pelajaran': '',
+        'Nilai': totalStudents
+      });
+      
+      // Create worksheet
+      const ws = XLSX.utils.json_to_sheet(formattedData);
+      
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, `Rekap ${selectedMapel}`);
+      
+      // Generate filename
+      const filename = `Rekap_${selectedMapel}.xlsx`;
+      
+      // Export to Excel
+      XLSX.writeFile(wb, filename);
+    }
+
+    window.onload = () => {
+      getDataFromSheet();
+
+      setInterval(() => {
+        getDataFromSheet();
+      }, 300000); // 5 menit = 300000 ms
+    };
+  </script>
+</body>
+</html>
